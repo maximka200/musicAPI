@@ -13,6 +13,7 @@ type Config struct {
 	Host    string        `mapstructure:"HOST"`
 	Port    string        `mapstructure:"PORT"`
 	Timeout time.Duration `mapstructure:"TIMEOUT"`
+	Address string        `mapstructure:"API_ADRESS"`
 }
 
 // read config from ./config/

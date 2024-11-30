@@ -1,21 +1,39 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"log/slog"
+	"musicAPI/internal/client/musicInfo"
 	"musicAPI/internal/config"
+	"musicAPI/internal/services"
+	"musicAPI/internal/transport/handlers"
+	"musicAPI/internal/transport/server"
 	"os"
+	"os/signal"
+	"syscall"
 )
 
 func main() {
 	cfg := config.MustReadConfig()
 	log := initLogger(cfg.Env)
+	log.Info("starting application", slog.Any("config", cfg))
 
-	/* go func() {
+	serv := server.Server{}
+	ctx, cancel := context.WithTimeout(context.Background(), cfg.Timeout)
+	defer cancel()
+
+	client := musicInfo.NewMusicInfo(cfg.Address, cfg.Timeout)
+	service := services.NewService(client)
+	handler := handlers.NewHandler(log, service, ctx)
+
+	go func() {
 		if err := serv.Run(cfg, handler.InitRouter()); err != nil {
 			log.Error(fmt.Sprintf("cannot run server: %s", err))
 			panic("cannot run server")
 		}
 	}()
+
 	// shutdown
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
@@ -23,7 +41,7 @@ func main() {
 
 	if err := serv.Shutdown(ctx); err != nil {
 		log.Error(fmt.Sprintf("an error occurred while executing graceful shutdown: %s", err))
-	} */
+	}
 }
 
 func initLogger(env string) *slog.Logger {
