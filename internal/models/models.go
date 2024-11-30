@@ -10,16 +10,22 @@ type Period struct {
 
 type Song struct {
 	Title Title
-	Info  Info
+	Info  interface{} // InfoCoupletsArray or InfoCoupletsString
 }
 
 type Title struct {
-	GroupName string
-	SongName  string
+	Group string
+	Song  string
 }
 
-type Info struct {
+type InfoCoupletsArray struct {
 	ReleaseDate time.Time
 	Couplets    []string
+	Link        string
+}
+
+type InfoCoupletsString struct {
+	ReleaseDate time.Time
+	Couplets    string
 	Link        string
 }

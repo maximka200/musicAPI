@@ -1,8 +1,8 @@
 package services
 
 import (
-	"musicAPI/internal/client/musicInfo"
 	"musicAPI/internal/models"
+	"musicAPI/internal/transport/client/musicInfo"
 )
 
 // TODO: parser of couplets from text through "\n\n"
@@ -28,7 +28,7 @@ func (s *Service) Edit(song *models.Song) error {
 	panic("not impl")
 }
 
-func (s *Service) GetCouplet(title *models.Title, startInd int, endInd int) ([]string, error) {
+func (s *Service) GetCouplet(title *models.Title, startInd int, endInd int) (string, error) {
 	panic("not impl")
 }
 
