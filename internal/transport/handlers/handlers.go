@@ -5,8 +5,8 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"log/slog"
+	localError "musicAPI/internal/err"
 	"musicAPI/internal/models"
-	localError "musicAPI/internal/transport/err"
 	"strconv"
 )
 
@@ -14,7 +14,7 @@ type Service interface {
 	AddNew(title *models.Title) error
 	Delete(title *models.Title) error
 	Edit(song *models.Song) error
-	GetCouplet(title *models.Title, page int, limit int) (string, error)
+	GetCouplets(title *models.Title, page int, limit int) (string, error)
 	GetSongsByGroupsAndRelease(filter *models.Filter, page int, limit int) ([]models.Song, error)
 }
 
@@ -40,7 +40,7 @@ func (h *Handler) InitRouter() *gin.Engine {
 		songs.POST("/add", h.Add)
 		songs.PATCH("/edit", h.Edit)
 		songs.GET("/couplets", h.Couplets)
-		songs.GET("filter-by-group-and-date", h.Search)
+		songs.GET("filter-by-group-and-date", h.GetSongs)
 	}
 
 	return engine
@@ -48,11 +48,13 @@ func (h *Handler) InitRouter() *gin.Engine {
 func (h *Handler) Delete(c *gin.Context) {
 	var title models.Title
 	if err := c.ShouldBindJSON(&title); err != nil {
+		h.log.Error(err.Error())
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
 	if err := h.service.Delete(&title); err != nil {
+		h.log.Error(err.Error())
 		if errors.Is(err, localError.ErrNotFound) {
 			c.JSON(404, gin.H{})
 			return
@@ -61,36 +63,51 @@ func (h *Handler) Delete(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, gin.H{"status": "deleted"})
+	h.log.Info("Delete success")
+	c.JSON(204, gin.H{})
 }
 
 func (h *Handler) Add(c *gin.Context) {
 	var title models.Title
 	if err := c.ShouldBindJSON(&title); err != nil {
+		h.log.Error(err.Error())
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
-
 	if err := h.service.AddNew(&title); err != nil {
+		h.log.Error(err.Error())
 		if errors.Is(err, localError.ErrAlreadyExist) {
 			c.JSON(409, gin.H{})
+			return
+		}
+		if errors.Is(err, localError.ErrNotFound) {
+			c.JSON(404, gin.H{}) // cannot find in API
 			return
 		}
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(200, gin.H{"status": "added"})
+	h.log.Info("AddNew success")
+	c.JSON(201, gin.H{})
 }
 
 func (h *Handler) Edit(c *gin.Context) {
-	var song models.Song
-	if err := c.ShouldBindJSON(&song); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+	song := &models.Song{}
+	if err := c.ShouldBindJSON(song); err != nil {
+		h.log.Error(err.Error())
+		c.JSON(500, gin.H{"error": err})
 		return
 	}
 
-	if err := h.service.Edit(&song); err != nil {
+	if song.Info == nil || song.Title.Song == "" || song.Title.Group == "" {
+		h.log.Error("Edit: empty required field")
+		c.JSON(400, gin.H{})
+		return
+	}
+
+	if err := h.service.Edit(song); err != nil {
+		h.log.Error(err.Error())
 		if errors.Is(err, localError.ErrNotFound) {
 			c.JSON(404, gin.H{})
 			return
@@ -99,6 +116,7 @@ func (h *Handler) Edit(c *gin.Context) {
 		return
 	}
 
+	h.log.Info("Edit success")
 	c.JSON(204, nil)
 }
 
@@ -109,12 +127,14 @@ func (h *Handler) Couplets(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "0"))
 
 	if group == "" || song == "" {
-		c.JSON(400, gin.H{"error": "group and song are required"})
+		h.log.Error("Couplets: group and song are required")
+		c.JSON(400, gin.H{})
 		return
 	}
 
-	couplets, err := h.service.GetCouplet(&models.Title{Group: group, Song: song}, page, limit)
+	couplets, err := h.service.GetCouplets(&models.Title{Group: group, Song: song}, page, limit)
 	if err != nil {
+		h.log.Error(err.Error())
 		if errors.Is(err, localError.ErrNotFound) {
 			c.JSON(404, gin.H{})
 			return
@@ -123,21 +143,24 @@ func (h *Handler) Couplets(c *gin.Context) {
 		return
 	}
 
+	h.log.Info("GetCouplets success")
 	c.JSON(200, gin.H{"couplets": couplets})
 }
 
-func (h *Handler) Search(c *gin.Context) {
+func (h *Handler) GetSongs(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "0"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "0"))
 
-	var filter *models.Filter
+	filter := &models.Filter{}
 	if err := c.ShouldBindJSON(filter); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+		h.log.Error(err.Error())
+		c.JSON(500, gin.H{})
 		return
 	}
 
 	songs, err := h.service.GetSongsByGroupsAndRelease(filter, page, limit)
 	if err != nil {
+		h.log.Error(err.Error())
 		if errors.Is(err, localError.ErrNotFound) {
 			c.JSON(404, gin.H{})
 			return
@@ -146,6 +169,7 @@ func (h *Handler) Search(c *gin.Context) {
 		return
 	}
 
+	h.log.Info("GetSongsByGroupsAndRelease success")
 	c.JSON(200, gin.H{
 		"data": songs,
 	})

@@ -11,27 +11,23 @@ import (
 )
 
 func TestMusicInfo_GetInfo_Success(t *testing.T) {
-	expectedSong := &models.Song{Title: &models.Title{
-		Group: "TestGroup",
-		Song:  "TestSong"},
-		Info: &models.Info{
-			ReleaseDate: "16.07.2006",
-			Text: "Ooh baby, don't you know I suffer?\\nOoh" +
-				"baby, can you hear me moan?\\nYou caught me under false pretenses\\n" +
-				"How long before you let me go?\\n\\nOoh\\nYou set my soul alight\\" +
-				"nOoh\\nYou set my soul alight",
-			Link: "https://www.youtube.com/watch?v=Xsp3_a-PMTw",
-		},
+	expected := &models.Info{
+		ReleaseDate: "16.07.2006",
+		Text: "Ooh baby, don't you know I suffer?\\nOoh" +
+			"baby, can you hear me moan?\\nYou caught me under false pretenses\\n" +
+			"How long before you let me go?\\n\\nOoh\\nYou set my soul alight\\" +
+			"nOoh\\nYou set my soul alight",
+		Link: "https://www.youtube.com/watch?v=Xsp3_a-PMTw",
 	}
-	addr := "http://localhost:1818"
+	addr := "http://localhost:1808"
 
 	mi := musicInfo.NewMusicInfo(addr, 2*time.Second)
 	title := &models.Title{Group: "TestGroup", Song: "TestSong"}
 
-	song, err := mi.GetInfo(title)
+	info, err := mi.GetInfo(title)
 
 	assert.NoError(t, err)
-	assert.Equal(t, expectedSong, song)
+	assert.Equal(t, expected, info)
 }
 
 func TestMusicInfo_GetInfo_NonOKStatus(t *testing.T) {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"musicAPI/internal/config"
+	"musicAPI/internal/repository/psql"
 	"musicAPI/internal/services"
 	"musicAPI/internal/transport/client/musicInfo"
 	"musicAPI/internal/transport/handlers"
@@ -23,8 +24,9 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.Timeout)
 	defer cancel()
 
-	client := musicInfo.NewMusicInfo(cfg.Address, cfg.Timeout)
-	service := services.NewService(client)
+	client := musicInfo.NewMusicInfo(cfg.ApiAddress, cfg.Timeout)
+	repos := psql.MustNewDB(&cfg)
+	service := services.NewService(client, repos)
 	handler := handlers.NewHandler(log, service, ctx)
 
 	go func() {

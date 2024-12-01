@@ -3,8 +3,11 @@ package musicInfo
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
+	localError "musicAPI/internal/err"
 	"musicAPI/internal/models"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -21,24 +24,32 @@ func NewMusicInfo(address string, timeout time.Duration) *MusicInfo {
 	}
 }
 
-func (mi *MusicInfo) GetInfo(title *models.Title) (*models.Song, error) {
+func (mi *MusicInfo) GetInfo(title *models.Title) (*models.Info, error) {
 	const op = "musicInfo.GetInfo"
-
-	url := fmt.Sprintf("%s/info?group=%s&song=%s", mi.Address, title.Group, title.Song)
+	slog.Info(title.Song, title.Group, mi.Address)
+	url := fmt.Sprintf("%s/info?group=%s&song=%s", mi.Address,
+		url.QueryEscape(title.Group),
+		url.QueryEscape(title.Song))
 	resp, err := mi.Client.Get(url)
 	if err != nil {
-		return &models.Song{}, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return &models.Song{}, fmt.Errorf("%s: %w", op, err)
+		if resp.StatusCode == http.StatusBadRequest {
+			return nil, fmt.Errorf("%s:%w", op, localError.ErrBadRequest)
+		}
+		if resp.StatusCode == http.StatusNotFound {
+			return nil, fmt.Errorf("%s:%w", op, localError.ErrNotFound)
+		}
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	info := &models.Info{}
 	if err = json.NewDecoder(resp.Body).Decode(info); err != nil {
-		return &models.Song{}, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return &models.Song{Title: title, Info: info}, nil
+	return info, nil
 }
