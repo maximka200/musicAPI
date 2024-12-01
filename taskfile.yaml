@@ -1,0 +1,24 @@
+version: '3'
+
+tasks:
+  start:
+    cmds:
+      - task: start-docker
+      - task: start-app
+      - task: start-test-server
+
+  start-docker:
+    cmds:
+      - docker-compose up -d
+
+  start-app:
+    cmds:
+      - go run cmd/musicAPI/main.go
+
+  start-test-server:
+    cmds:
+      - go run cmd/testserver/main.go
+
+  stop:
+    cmds:
+      - docker-compose down
