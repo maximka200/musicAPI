@@ -2,9 +2,11 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"github.com/gin-gonic/gin"
 	"log/slog"
 	"musicAPI/internal/models"
+	localError "musicAPI/internal/transport/err"
 	"strconv"
 )
 
@@ -12,8 +14,8 @@ type Service interface {
 	AddNew(title *models.Title) error
 	Delete(title *models.Title) error
 	Edit(song *models.Song) error
-	GetCouplet(title *models.Title, startInd int, endInd int) (string, error)
-	GetSongsByGroupsAndRelease(groups []string, period models.Period) ([]models.Song, error)
+	GetCouplet(title *models.Title, page int, limit int) (string, error)
+	GetSongsByGroupsAndRelease(filter *models.Filter, page int, limit int) ([]models.Song, error)
 }
 
 type Handler struct {
@@ -51,6 +53,10 @@ func (h *Handler) Delete(c *gin.Context) {
 	}
 
 	if err := h.service.Delete(&title); err != nil {
+		if errors.Is(err, localError.ErrNotFound) {
+			c.JSON(404, gin.H{})
+			return
+		}
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
@@ -66,6 +72,10 @@ func (h *Handler) Add(c *gin.Context) {
 	}
 
 	if err := h.service.AddNew(&title); err != nil {
+		if errors.Is(err, localError.ErrAlreadyExist) {
+			c.JSON(409, gin.H{})
+			return
+		}
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
@@ -81,6 +91,10 @@ func (h *Handler) Edit(c *gin.Context) {
 	}
 
 	if err := h.service.Edit(&song); err != nil {
+		if errors.Is(err, localError.ErrNotFound) {
+			c.JSON(404, gin.H{})
+			return
+		}
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
@@ -101,6 +115,10 @@ func (h *Handler) Couplets(c *gin.Context) {
 
 	couplets, err := h.service.GetCouplet(&models.Title{Group: group, Song: song}, page, limit)
 	if err != nil {
+		if errors.Is(err, localError.ErrNotFound) {
+			c.JSON(404, gin.H{})
+			return
+		}
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
@@ -109,5 +127,26 @@ func (h *Handler) Couplets(c *gin.Context) {
 }
 
 func (h *Handler) Search(c *gin.Context) {
-	// Implementation for search endpoint
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "0"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "0"))
+
+	var filter *models.Filter
+	if err := c.ShouldBindJSON(filter); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	songs, err := h.service.GetSongsByGroupsAndRelease(filter, page, limit)
+	if err != nil {
+		if errors.Is(err, localError.ErrNotFound) {
+			c.JSON(404, gin.H{})
+			return
+		}
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"data": songs,
+	})
 }

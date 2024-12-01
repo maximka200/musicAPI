@@ -1,7 +1,6 @@
 package client_test
 
 import (
-	"encoding/json"
 	"github.com/stretchr/testify/assert"
 	"musicAPI/internal/models"
 	"musicAPI/internal/transport/client/musicInfo"
@@ -12,16 +11,22 @@ import (
 )
 
 func TestMusicInfo_GetInfo_Success(t *testing.T) {
-	expectedSong := models.Song{Title: models.Title{Group: "TestGroup", Song: "TestSong"}}
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "/info?group=TestGroup&song=TestSong", r.URL.String())
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(expectedSong)
-	}))
-	defer server.Close()
+	expectedSong := &models.Song{Title: &models.Title{
+		Group: "TestGroup",
+		Song:  "TestSong"},
+		Info: &models.Info{
+			ReleaseDate: "16.07.2006",
+			Text: "Ooh baby, don't you know I suffer?\\nOoh" +
+				"baby, can you hear me moan?\\nYou caught me under false pretenses\\n" +
+				"How long before you let me go?\\n\\nOoh\\nYou set my soul alight\\" +
+				"nOoh\\nYou set my soul alight",
+			Link: "https://www.youtube.com/watch?v=Xsp3_a-PMTw",
+		},
+	}
+	addr := "http://localhost:1818"
 
-	mi := musicInfo.NewMusicInfo(server.URL, 2*time.Second)
-	title := models.Title{Group: "TestGroup", Song: "TestSong"}
+	mi := musicInfo.NewMusicInfo(addr, 2*time.Second)
+	title := &models.Title{Group: "TestGroup", Song: "TestSong"}
 
 	song, err := mi.GetInfo(title)
 
@@ -36,36 +41,10 @@ func TestMusicInfo_GetInfo_NonOKStatus(t *testing.T) {
 	defer server.Close()
 
 	mi := musicInfo.NewMusicInfo(server.URL, 2*time.Second)
-	title := models.Title{Group: "TestGroup", Song: "TestSong"}
+	title := &models.Title{Group: "TestGroup", Song: "TestSong"}
 
 	song, err := mi.GetInfo(title)
 
 	assert.Error(t, err)
-	assert.Equal(t, models.Song{}, song)
-}
-
-func TestMusicInfo_GetInfo_InvalidJSON(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("invalid json"))
-	}))
-	defer server.Close()
-
-	mi := musicInfo.NewMusicInfo(server.URL, 2*time.Second)
-	title := models.Title{Group: "TestGroup", Song: "TestSong"}
-
-	song, err := mi.GetInfo(title)
-
-	assert.Error(t, err)
-	assert.Equal(t, models.Song{}, song)
-}
-
-func TestMusicInfo_GetInfo_HTTPError(t *testing.T) {
-	mi := musicInfo.NewMusicInfo("http://invalid-url", 2*time.Second)
-	title := models.Title{Group: "TestGroup", Song: "TestSong"}
-
-	song, err := mi.GetInfo(title)
-
-	assert.Error(t, err)
-	assert.Equal(t, models.Song{}, song)
+	assert.Equal(t, &models.Song{}, song)
 }

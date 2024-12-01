@@ -21,24 +21,24 @@ func NewMusicInfo(address string, timeout time.Duration) *MusicInfo {
 	}
 }
 
-func (mi *MusicInfo) GetInfo(title models.Title) (models.Song, error) {
+func (mi *MusicInfo) GetInfo(title *models.Title) (*models.Song, error) {
 	const op = "musicInfo.GetInfo"
 
 	url := fmt.Sprintf("%s/info?group=%s&song=%s", mi.Address, title.Group, title.Song)
 	resp, err := mi.Client.Get(url)
 	if err != nil {
-		return models.Song{}, err
+		return &models.Song{}, fmt.Errorf("%s: %w", op, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return models.Song{}, fmt.Errorf("failed to get info: %s", resp.Status)
+		return &models.Song{}, fmt.Errorf("%s: %w", op, err)
 	}
 
-	var song models.Song
-	if err = json.NewDecoder(resp.Body).Decode(&song); err != nil {
-		return models.Song{}, err
+	info := &models.Info{}
+	if err = json.NewDecoder(resp.Body).Decode(info); err != nil {
+		return &models.Song{}, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return song, nil
+	return &models.Song{Title: title, Info: info}, nil
 }
