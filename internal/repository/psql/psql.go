@@ -36,7 +36,7 @@ func MustNewDB(cfg *config.Config) *Storage {
 }
 
 func (s *Storage) AddNewSong(title *models.Title, release string, couplets []string, link string) error {
-	// Implementation here
+	const op = "psql.AddNewSong"
 	return nil
 }
 

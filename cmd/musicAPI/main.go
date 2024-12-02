@@ -10,6 +10,7 @@ import (
 	"musicAPI/internal/transport/client/musicInfo"
 	"musicAPI/internal/transport/handlers"
 	"musicAPI/internal/transport/server"
+	"musicAPI/migrator"
 	"os"
 	"os/signal"
 	"syscall"
@@ -20,6 +21,10 @@ func main() {
 	log := initLogger(cfg.Env)
 	log.Info("starting application", slog.Any("config", cfg))
 
+	if cfg.Env == "prod" {
+		migrator.MigrateUp(cfg, "postgres")
+		log.Info("migrate created")
+	}
 	serv := server.Server{}
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.Timeout)
 	defer cancel()

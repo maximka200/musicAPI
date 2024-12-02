@@ -23,7 +23,6 @@ type Config struct {
 	DbTimeout  time.Duration `mapstructure:"DB_TIMEOUT"`
 }
 
-// read config from ./config/
 func MustReadConfig() Config {
 	var cfg Config
 
