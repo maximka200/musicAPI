@@ -4,8 +4,8 @@ POST http://localhost:8080/songs/add
 Content-Type: application/json
 
 {
-  "group": "The Beatles",
-  "song": "Hey Jude"
+  "group": "The Beys",
+  "song": "Hey Jhue"
 }
 
 > {%

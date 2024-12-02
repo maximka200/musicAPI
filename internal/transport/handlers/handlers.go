@@ -11,11 +11,11 @@ import (
 )
 
 type Service interface {
-	AddNew(title *models.Title) error
-	Delete(title *models.Title) error
-	Edit(song *models.Song) error
-	GetCouplets(title *models.Title, page int, limit int) (string, error)
-	GetSongsByGroupsAndRelease(filter *models.Filter, page int, limit int) ([]models.Song, error)
+	AddNew(ctx context.Context, title *models.Title) error
+	Delete(ctx context.Context, title *models.Title) error
+	Edit(ctx context.Context, song *models.Song) error
+	GetCouplets(ctx context.Context, title *models.Title, page int, limit int) (string, error)
+	GetSongsByGroupsAndRelease(ctx context.Context, filter *models.Filter, page int, limit int) ([]models.Song, error)
 }
 
 type Handler struct {
@@ -53,7 +53,7 @@ func (h *Handler) Delete(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.Delete(&title); err != nil {
+	if err := h.service.Delete(h.ctx, &title); err != nil {
 		h.log.Error(err.Error())
 		if errors.Is(err, localError.ErrNotFound) {
 			c.JSON(404, gin.H{})
@@ -74,7 +74,7 @@ func (h *Handler) Add(c *gin.Context) {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
-	if err := h.service.AddNew(&title); err != nil {
+	if err := h.service.AddNew(h.ctx, &title); err != nil {
 		h.log.Error(err.Error())
 		if errors.Is(err, localError.ErrAlreadyExist) {
 			c.JSON(409, gin.H{})
@@ -106,7 +106,7 @@ func (h *Handler) Edit(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.Edit(song); err != nil {
+	if err := h.service.Edit(h.ctx, song); err != nil {
 		h.log.Error(err.Error())
 		if errors.Is(err, localError.ErrNotFound) {
 			c.JSON(404, gin.H{})
@@ -132,7 +132,7 @@ func (h *Handler) Couplets(c *gin.Context) {
 		return
 	}
 
-	couplets, err := h.service.GetCouplets(&models.Title{Group: group, Song: song}, page, limit)
+	couplets, err := h.service.GetCouplets(h.ctx, &models.Title{Group: group, Song: song}, page, limit)
 	if err != nil {
 		h.log.Error(err.Error())
 		if errors.Is(err, localError.ErrNotFound) {
@@ -158,7 +158,7 @@ func (h *Handler) GetSongs(c *gin.Context) {
 		return
 	}
 
-	songs, err := h.service.GetSongsByGroupsAndRelease(filter, page, limit)
+	songs, err := h.service.GetSongsByGroupsAndRelease(h.ctx, filter, page, limit)
 	if err != nil {
 		h.log.Error(err.Error())
 		if errors.Is(err, localError.ErrNotFound) {

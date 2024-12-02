@@ -1,6 +1,7 @@
 package musicInfo
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -24,7 +25,7 @@ func NewMusicInfo(address string, timeout time.Duration) *MusicInfo {
 	}
 }
 
-func (mi *MusicInfo) GetInfo(title *models.Title) (*models.Info, error) {
+func (mi *MusicInfo) GetInfo(ctx context.Context, title *models.Title) (*models.Info, error) {
 	const op = "musicInfo.GetInfo"
 	slog.Info(title.Song, title.Group, mi.Address)
 	url := fmt.Sprintf("%s/info?group=%s&song=%s", mi.Address,

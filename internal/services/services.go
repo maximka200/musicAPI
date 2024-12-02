@@ -1,21 +1,22 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"musicAPI/internal/libs/parsers"
 	"musicAPI/internal/models"
 )
 
 type Repository interface {
-	AddNewSong(title *models.Title, release string, couplets []string, link string) error
-	DeleteSong(title *models.Title) error
-	EditSong(title *models.Title, release string, couplets []string, link string) error
-	GetCouplets(title *models.Title, page int, limit int) ([]string, error)
-	GetSongsByGroupsAndRelease(filters *models.Filter, page int, limit int) ([]models.Song, error)
+	AddNewSong(ctx context.Context, title *models.Title, release string, couplets []string, link string) error
+	DeleteSong(ctx context.Context, title *models.Title) error
+	EditSong(ctx context.Context, title *models.Title, release string, couplets []string, link string) error
+	GetCouplets(ctx context.Context, title *models.Title, page int, limit int) ([]string, error)
+	GetSongsByGroupsAndRelease(ctx context.Context, filters *models.Filter, page int, limit int) ([]models.Song, error)
 }
 
 type Client interface {
-	GetInfo(title *models.Title) (*models.Info, error)
+	GetInfo(ctx context.Context, title *models.Title) (*models.Info, error)
 }
 
 type Service struct {
@@ -27,17 +28,17 @@ func NewService(client Client, repos Repository) *Service {
 	return &Service{Client: client, Repos: repos}
 }
 
-func (s *Service) AddNew(title *models.Title) error {
+func (s *Service) AddNew(ctx context.Context, title *models.Title) error {
 	const op = "service.AddNew"
 
-	info, err := s.Client.GetInfo(title)
+	info, err := s.Client.GetInfo(ctx, title)
 	if err != nil {
 		return fmt.Errorf("%s:%w", op, err)
 	}
 
 	couplets := parsers.ParseInCouplets(info.Text)
 
-	err = s.Repos.AddNewSong(title, info.ReleaseDate, couplets, info.Link)
+	err = s.Repos.AddNewSong(ctx, title, info.ReleaseDate, couplets, info.Link)
 	if err != nil {
 		return fmt.Errorf("%s:%w", op, err)
 	}
@@ -45,10 +46,10 @@ func (s *Service) AddNew(title *models.Title) error {
 	return nil
 }
 
-func (s *Service) Delete(title *models.Title) error {
+func (s *Service) Delete(ctx context.Context, title *models.Title) error {
 	const op = "service.Delete"
 
-	err := s.Repos.DeleteSong(title)
+	err := s.Repos.DeleteSong(ctx, title)
 	if err != nil {
 		return fmt.Errorf("%s:%w", op, err)
 	}
@@ -56,10 +57,10 @@ func (s *Service) Delete(title *models.Title) error {
 	return nil
 }
 
-func (s *Service) Edit(song *models.Song) error {
+func (s *Service) Edit(ctx context.Context, song *models.Song) error {
 	const op = "service.Edit"
 	couplets := parsers.ParseInCouplets(song.Info.Text)
-	err := s.Repos.EditSong(song.Title, song.Info.Text, couplets, song.Info.Link)
+	err := s.Repos.EditSong(ctx, song.Title, song.Info.Text, couplets, song.Info.Link)
 	if err != nil {
 		return fmt.Errorf("%s:%w", op, err)
 	}
@@ -67,10 +68,10 @@ func (s *Service) Edit(song *models.Song) error {
 	return nil
 }
 
-func (s *Service) GetCouplets(title *models.Title, page int, limit int) (string, error) {
+func (s *Service) GetCouplets(ctx context.Context, title *models.Title, page int, limit int) (string, error) {
 	const op = "service.GetCouplets"
 
-	couplets, err := s.Repos.GetCouplets(title, page, limit)
+	couplets, err := s.Repos.GetCouplets(ctx, title, page, limit)
 	if err != nil {
 		return "", fmt.Errorf("%s:%w", op, err)
 	}
@@ -78,10 +79,10 @@ func (s *Service) GetCouplets(title *models.Title, page int, limit int) (string,
 	return parsers.JoinCouplets(couplets), nil
 }
 
-func (s *Service) GetSongsByGroupsAndRelease(filters *models.Filter, page int, limit int) ([]models.Song, error) {
+func (s *Service) GetSongsByGroupsAndRelease(ctx context.Context, filters *models.Filter, page int, limit int) ([]models.Song, error) {
 	const op = "service.GetSongsByGroupsAndReleaze"
 
-	songs, err := s.Repos.GetSongsByGroupsAndRelease(filters, page, limit)
+	songs, err := s.Repos.GetSongsByGroupsAndRelease(ctx, filters, page, limit)
 	if err != nil {
 		return nil, fmt.Errorf("%s:%w", op, err)
 	}
