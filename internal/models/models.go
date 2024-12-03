@@ -1,16 +1,14 @@
 package models
 
-import "time"
-
 type Filter struct {
-	Groups []string
-	Per    Period
+	Groups []string `json:"groups"`
+	Per    *Period  `json:"period"`
 }
 
 // inclusive of the end
 type Period struct {
-	Start time.Time
-	End   time.Time
+	Start string `json:"start"`
+	End   string `json:"end"`
 }
 
 type Song struct {

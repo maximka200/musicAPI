@@ -125,8 +125,8 @@ func (h *Handler) Edit(c *gin.Context) {
 func (h *Handler) Couplets(c *gin.Context) {
 	group := c.Query("group")
 	song := c.Query("song")
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "0"))
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "0"))
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "1"))
 
 	if group == "" || song == "" {
 		h.log.Error("Couplets: group and song are required")
@@ -150,13 +150,38 @@ func (h *Handler) Couplets(c *gin.Context) {
 }
 
 func (h *Handler) GetSongs(c *gin.Context) {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "0"))
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "0"))
+	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if err != nil || page <= 0 {
+		h.log.Error("GetSongs: not correct page or limit")
+		c.JSON(400, gin.H{})
+		return
+	}
+	limit, err := strconv.Atoi(c.DefaultQuery("limit", "1"))
+	if err != nil || limit < -1 {
+		h.log.Error("GetSongs: not correct page or limit")
+		c.JSON(400, gin.H{})
+		return
+	}
 
 	filter := &models.Filter{}
 	if err := c.ShouldBindJSON(filter); err != nil {
 		h.log.Error(err.Error())
-		c.JSON(500, gin.H{})
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	if filter.Per == nil {
+		h.log.Error("GetSongs: not correct period")
+		c.JSON(400, gin.H{})
+		return
+	}
+	if filter.Per.Start != "" && !parsers.IsValidDate(filter.Per.Start) {
+		h.log.Error("GetSongs: not correct date")
+		c.JSON(400, gin.H{})
+		return
+	}
+	if filter.Per.End != "" && !parsers.IsValidDate(filter.Per.End) {
+		h.log.Error("GetSongs: not correct date")
+		c.JSON(400, gin.H{})
 		return
 	}
 

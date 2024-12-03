@@ -17,7 +17,7 @@ import (
 const songsTable = "songs"
 
 type Storage struct {
-	db *sqlx.DB
+	Db *sqlx.DB
 }
 
 func MustNewDB(cfg *config.Config) *Storage {
@@ -39,12 +39,12 @@ func MustNewDB(cfg *config.Config) *Storage {
 		panic(t)
 	}
 
-	return &Storage{db: db}
+	return &Storage{Db: db}
 }
 
 func (s *Storage) AddNewSong(ctx context.Context, title *models.Title, release string, couplets []string, link string) error {
 	const op = "psql.AddNewSong"
-	stmt, err := s.db.Prepare(fmt.Sprintf(
+	stmt, err := s.Db.Prepare(fmt.Sprintf(
 		"INSERT INTO %s (group_name, song_name, release_date, text, link) VALUES ($1, $2, $3, $4, $5)",
 		songsTable))
 	if err != nil {
@@ -72,7 +72,7 @@ func (s *Storage) AddNewSong(ctx context.Context, title *models.Title, release s
 
 func (s *Storage) DeleteSong(ctx context.Context, title *models.Title) error {
 	const op = "psql.DeleteSong"
-	stmt, err := s.db.Prepare(fmt.Sprintf(
+	stmt, err := s.Db.Prepare(fmt.Sprintf(
 		"DELETE FROM %s WHERE group_name=$1 AND song_name=$2",
 		songsTable))
 	if err != nil {
@@ -103,7 +103,7 @@ func (s *Storage) DeleteSong(ctx context.Context, title *models.Title) error {
 
 func (s *Storage) EditSong(ctx context.Context, title *models.Title, release string, couplets []string, link string) error {
 	const op = "psql.EditSong"
-	stmt, err := s.db.Prepare(fmt.Sprintf(
+	stmt, err := s.Db.Prepare(fmt.Sprintf(
 		"UPDATE %s SET release_date = $1, text = $2, link = $3 WHERE group_name = $4 AND song_name = $5",
 		songsTable))
 	if err != nil {
@@ -137,7 +137,8 @@ func (s *Storage) EditSong(ctx context.Context, title *models.Title, release str
 func (s *Storage) GetCouplets(ctx context.Context, title *models.Title, page, limit int) ([]string, error) {
 	const op = "psql.GetCouplets"
 
-	stmt, err := s.db.Prepare(fmt.Sprintf(`
+	offset := (page - 1) * limit
+	stmt, err := s.Db.Prepare(fmt.Sprintf(`
 		SELECT couplet 
 		FROM unnest((
 			SELECT text 
@@ -153,7 +154,7 @@ func (s *Storage) GetCouplets(ctx context.Context, title *models.Title, page, li
 
 	defer stmt.Close()
 
-	rows, err := stmt.Query(title.Group, title.Song, limit, page*limit)
+	rows, err := stmt.Query(title.Group, title.Song, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -180,9 +181,67 @@ func (s *Storage) GetCouplets(ctx context.Context, title *models.Title, page, li
 }
 
 func (s *Storage) GetSongsByGroupsAndRelease(ctx context.Context, filters *models.Filter, page int, limit int) ([]models.Song, error) {
-	const op = "GetSongsByGroupsAndRelease"
+	const op = "psql.GetSongsByGroupsAndRelease"
 
-	return nil, nil
+	offset := (page - 1) * limit
+
+	query := fmt.Sprintf(`
+		SELECT group_name, song_name, release_date, text, link
+		FROM %s
+		WHERE
+			($1::text[] IS NULL OR group_name = ANY($1))
+			AND ($2::date IS NULL OR release_date >= $2)
+			AND ($3::date IS NULL OR release_date <= $3)
+		ORDER BY release_date DESC
+		LIMIT $4 OFFSET $5;
+	`, songsTable)
+
+	stmt, err := s.Db.Prepare(query)
+	if err != nil {
+		return nil, fmt.Errorf("%s: failed to prepare query: %w", op, err)
+	}
+	defer stmt.Close()
+
+	rows, err := stmt.Query(
+		pq.Array(filters.Groups),
+		filters.Per.Start,
+		filters.Per.End,
+		limit,
+		offset,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("%s: failed to execute query: %w", op, err)
+	}
+	defer rows.Close()
+
+	songs := []models.Song{}
+	for rows.Next() {
+		song := models.Song{
+			Title: &models.Title{},
+			Info:  &models.Info{},
+		}
+		buffer := []string{}
+
+		if err := rows.Scan(
+			&song.Title.Group,
+			&song.Title.Song,
+			&song.Info.ReleaseDate,
+			pq.Array(&buffer),
+			&song.Info.Link,
+		); err != nil {
+			return nil, fmt.Errorf("%s: failed to scan row: %w", op, err)
+		}
+
+		song.Info.Text = parsers.JoinCouplets(buffer)
+
+		songs = append(songs, song)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("%s: row iteration error: %w", op, err)
+	}
+
+	return songs, nil
 }
 
 func isUniqueViolation(err error) bool {

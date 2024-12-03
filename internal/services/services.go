@@ -80,7 +80,10 @@ func (s *Service) GetCouplets(ctx context.Context, title *models.Title, page int
 }
 
 func (s *Service) GetSongsByGroupsAndRelease(ctx context.Context, filters *models.Filter, page int, limit int) ([]models.Song, error) {
-	const op = "service.GetSongsByGroupsAndReleaze"
+	const op = "service.GetSongsByGroupsAndRelease"
+
+	filters.Per.Start, _ = parsers.StringDateForPsql(filters.Per.Start)
+	filters.Per.End, _ = parsers.StringDateForPsql(filters.Per.End)
 
 	songs, err := s.Repos.GetSongsByGroupsAndRelease(ctx, filters, page, limit)
 	if err != nil {

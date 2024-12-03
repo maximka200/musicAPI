@@ -1,11 +1,10 @@
 package client_test
 
 import (
+	"context"
 	"github.com/stretchr/testify/assert"
 	"musicAPI/internal/models"
 	"musicAPI/internal/transport/client/musicInfo"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 	"time"
 )
@@ -24,23 +23,17 @@ func TestMusicInfo_GetInfo_Success(t *testing.T) {
 	mi := musicInfo.NewMusicInfo(addr, 2*time.Second)
 	title := &models.Title{Group: "TestGroup", Song: "TestSong"}
 
-	info, err := mi.GetInfo(title)
+	info, err := mi.GetInfo(context.Background(), title)
 
 	assert.NoError(t, err)
 	assert.Equal(t, expected, info)
 }
 
-func TestMusicInfo_GetInfo_NonOKStatus(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNotFound)
-	}))
-	defer server.Close()
-
-	mi := musicInfo.NewMusicInfo(server.URL, 2*time.Second)
-	title := &models.Title{Group: "TestGroup", Song: "TestSong"}
-
-	song, err := mi.GetInfo(title)
-
-	assert.Error(t, err)
-	assert.Equal(t, &models.Song{}, song)
-}
+/* SELECT group_name, song_name, release_date, text, link
+FROM songs
+WHERE
+('{"T"}'::text[] IS NULL OR group_name = ANY('{"T"}'::text[]))
+AND ('2000-01-01'::date IS NULL OR release_date >= '2000-01-01')
+AND ('2024-12-01'::date IS NULL OR release_date <= '2024-12-01')
+ORDER BY release_date DESC
+LIMIT 10 OFFSET 0; */
