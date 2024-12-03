@@ -22,3 +22,7 @@ tasks:
   stop:
     cmds:
       - docker-compose down
+  dockerrun:
+      - docker run --name musicAPI -p 5432:5432 -e POSTGRES_USER=user -e POSTGRES_PASSWORD=password -d ubuntu/postgres
+  createdb:
+    - docker exec -it musicAPI createdb --username=user --owner=user musicAPI

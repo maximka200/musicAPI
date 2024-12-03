@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"log/slog"
 	localError "musicAPI/internal/err"
+	"musicAPI/internal/libs/parsers"
 	"musicAPI/internal/models"
 	"strconv"
 )
@@ -100,8 +101,9 @@ func (h *Handler) Edit(c *gin.Context) {
 		return
 	}
 
-	if song.Info == nil || song.Title.Song == "" || song.Title.Group == "" {
-		h.log.Error("Edit: empty required field")
+	if song.Info == nil || song.Title.Song == "" ||
+		song.Title.Group == "" || parsers.IsValidDate(song.Info.ReleaseDate) {
+		h.log.Error("Edit: empty required field or not corrected value")
 		c.JSON(400, gin.H{})
 		return
 	}
@@ -117,7 +119,7 @@ func (h *Handler) Edit(c *gin.Context) {
 	}
 
 	h.log.Info("Edit success")
-	c.JSON(204, nil)
+	c.JSON(200, gin.H{"info.text": song.Info.Text})
 }
 
 func (h *Handler) Couplets(c *gin.Context) {

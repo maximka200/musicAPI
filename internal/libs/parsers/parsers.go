@@ -25,3 +25,14 @@ func StringDateForPsql(date string) (string, error) {
 
 	return fmt.Sprintf("%s-%s-%s", arr[2], arr[1], arr[0]), nil
 }
+
+func IsValidDate(date string) bool {
+	arr := strings.Split(date, ".")
+	if len(arr) != 3 {
+		return false
+	}
+	if len(arr[0]) != 2 || len(arr[1]) != 2 || len(arr[2]) != 4 {
+		return false
+	}
+	return true
+}

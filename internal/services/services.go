@@ -60,7 +60,7 @@ func (s *Service) Delete(ctx context.Context, title *models.Title) error {
 func (s *Service) Edit(ctx context.Context, song *models.Song) error {
 	const op = "service.Edit"
 	couplets := parsers.ParseInCouplets(song.Info.Text)
-	err := s.Repos.EditSong(ctx, song.Title, song.Info.Text, couplets, song.Info.Link)
+	err := s.Repos.EditSong(ctx, song.Title, song.Info.ReleaseDate, couplets, song.Info.Link)
 	if err != nil {
 		return fmt.Errorf("%s:%w", op, err)
 	}

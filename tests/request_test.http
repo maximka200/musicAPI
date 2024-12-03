@@ -29,10 +29,10 @@ PATCH http://localhost:8080/songs/edit
 Content-Type: application/json
 
 {
-  "title": { "group": "The Beatles", "song": "Hey Jude"},
+  "title": { "group": "The Beys", "song": "Hey Jhue"},
   "info": {
-    "releaseDate": "16.07.2006",
-    "text": "Ooh baby, don't you know I suffer?\\nOoh baby, can you hear me moan?\\nYou caught me under false pretenses\\nHow long before you let me go?\\n\\nOoh\\nYou set my soul alight\\nOoh\\nYou set my soul alight",
+    "releaseDate": "11.010.2006",
+    "text": "pisya\\n\\npopa",
     "link": "https://www.youtube.com/watch?v=Xsp3_a-PMTw"
   }
 }
