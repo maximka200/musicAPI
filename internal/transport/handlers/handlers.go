@@ -102,7 +102,7 @@ func (h *Handler) Edit(c *gin.Context) {
 	}
 
 	if song.Info == nil || song.Title.Song == "" ||
-		song.Title.Group == "" || parsers.IsValidDate(song.Info.ReleaseDate) {
+		song.Title.Group == "" || !parsers.IsValidDate(song.Info.ReleaseDate) {
 		h.log.Error("Edit: empty required field or not corrected value")
 		c.JSON(400, gin.H{})
 		return
@@ -119,7 +119,7 @@ func (h *Handler) Edit(c *gin.Context) {
 	}
 
 	h.log.Info("Edit success")
-	c.JSON(200, gin.H{"info.text": song.Info.Text})
+	c.JSON(204, gin.H{})
 }
 
 func (h *Handler) Couplets(c *gin.Context) {

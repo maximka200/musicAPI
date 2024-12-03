@@ -134,9 +134,49 @@ func (s *Storage) EditSong(ctx context.Context, title *models.Title, release str
 	return nil
 }
 
-func (s *Storage) GetCouplets(ctx context.Context, title *models.Title, page int, limit int) ([]string, error) {
+func (s *Storage) GetCouplets(ctx context.Context, title *models.Title, page, limit int) ([]string, error) {
 	const op = "psql.GetCouplets"
-	return nil, nil
+
+	stmt, err := s.db.Prepare(fmt.Sprintf(`
+		SELECT couplet 
+		FROM unnest((
+			SELECT text 
+			FROM %s
+			WHERE group_name = $1 AND song_name = $2
+		)) AS couplet
+		LIMIT $3 OFFSET $4;
+		`,
+		songsTable))
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	defer stmt.Close()
+
+	rows, err := stmt.Query(title.Group, title.Song, limit, page*limit)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	defer rows.Close()
+
+	var couplets []string
+	for rows.Next() {
+		var couplet string
+		if err = rows.Scan(&couplet); err != nil {
+			return nil, fmt.Errorf("%s: failed to scan row: %w", op, err)
+		}
+		couplets = append(couplets, couplet)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("%s: row iteration failed: %w", op, err)
+	}
+
+	if len(couplets) == 0 {
+		return nil, localError.ErrNotFound
+	}
+
+	return couplets, nil
 }
 
 func (s *Storage) GetSongsByGroupsAndRelease(ctx context.Context, filters *models.Filter, page int, limit int) ([]models.Song, error) {
