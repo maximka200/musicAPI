@@ -188,10 +188,6 @@ func (h *Handler) GetSongs(c *gin.Context) {
 	songs, err := h.service.GetSongsByGroupsAndRelease(h.ctx, filter, page, limit)
 	if err != nil {
 		h.log.Error(err.Error())
-		if errors.Is(err, localError.ErrNotFound) {
-			c.JSON(404, gin.H{})
-			return
-		}
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}

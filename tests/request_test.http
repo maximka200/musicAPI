@@ -59,14 +59,14 @@ client.test("Song deleted successfully", function() {
 %}
 
 ###
-GET http://localhost:8080/songs/filter-by-group-and-date?page=1&limit=10
+GET http://localhost:8080/songs/filter-by-group-and-date?page=1&limit=100
 Content-Type: application/json
 
 {
-  "groups": ["T"],
+  "group": [],
   "period":
   {
-    "start": "10.10.1900",
+    "start": "12.10.2020",
     "end": "12.10.2020"
   }
 }
