@@ -1,6 +1,6 @@
 # MusicAPI
 
-API for API for storing songs.
+API for storing songs.
 
 ## Start
 
