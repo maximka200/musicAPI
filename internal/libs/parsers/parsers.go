@@ -3,6 +3,7 @@ package parsers
 import (
 	"fmt"
 	"strings"
+	"time"
 )
 
 func ParseInCouplets(text string) []string {
@@ -35,4 +36,13 @@ func IsValidDate(date string) bool {
 		return false
 	}
 	return true
+}
+
+func ConvertISOToDate(isoDate string) (string, error) {
+	parsedTime, err := time.Parse(time.RFC3339, isoDate)
+	if err != nil {
+		return "", fmt.Errorf("cannot read data from db: %w", err)
+	}
+
+	return parsedTime.Format("02.01.2006"), nil
 }

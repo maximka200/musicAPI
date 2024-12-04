@@ -66,7 +66,7 @@ Content-Type: application/json
   "group": [],
   "period":
   {
-    "start": "12.10.2020",
+    "start": "12.10.2000",
     "end": "12.10.2020"
   }
 }

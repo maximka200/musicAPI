@@ -189,9 +189,9 @@ func (s *Storage) GetSongsByGroupsAndRelease(ctx context.Context, filters *model
 		SELECT group_name, song_name, release_date, text, link
 		FROM %s
 		WHERE
-			($1::text[] IS NULL OR group_name = ANY($1))
-			AND ($2::date IS NULL OR release_date >= $2)
-			AND ($3::date IS NULL OR release_date <= $3)
+		($1::text[] IS NULL OR group_name = ANY($1))
+		AND (NULLIF($2, '')::date IS NULL OR release_date >= NULLIF($2, '')::date)
+		AND (NULLIF($3, '')::date IS NULL OR release_date <= NULLIF($3, '')::date)
 		ORDER BY release_date DESC
 		LIMIT $4 OFFSET $5;
 	`, songsTable)
@@ -210,7 +210,8 @@ func (s *Storage) GetSongsByGroupsAndRelease(ctx context.Context, filters *model
 		offset,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("%s: failed to execute query: %w", op, err)
+		return nil, fmt.Errorf("%s: failed to execute query: %w, %s, %s", op, err,
+			filters.Per.End, filters.Per.Start)
 	}
 	defer rows.Close()
 
@@ -220,20 +221,23 @@ func (s *Storage) GetSongsByGroupsAndRelease(ctx context.Context, filters *model
 			Title: &models.Title{},
 			Info:  &models.Info{},
 		}
-		buffer := []string{}
-
+		bufferCouplets := []string{}
+		bufferRelease := ""
 		if err := rows.Scan(
 			&song.Title.Group,
 			&song.Title.Song,
-			&song.Info.ReleaseDate,
-			pq.Array(&buffer),
+			&bufferRelease,
+			pq.Array(&bufferCouplets),
 			&song.Info.Link,
 		); err != nil {
 			return nil, fmt.Errorf("%s: failed to scan row: %w", op, err)
 		}
 
-		song.Info.Text = parsers.JoinCouplets(buffer)
-
+		song.Info.Text = parsers.JoinCouplets(bufferCouplets)
+		song.Info.ReleaseDate, err = parsers.ConvertISOToDate(bufferRelease)
+		if err != nil {
+			return nil, fmt.Errorf("%s: failed to scan row: %w", op, err)
+		}
 		songs = append(songs, song)
 	}
 
