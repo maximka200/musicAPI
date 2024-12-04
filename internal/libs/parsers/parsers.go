@@ -15,7 +15,7 @@ func ParseInCouplets(text string) []string {
 }
 
 func JoinCouplets(couplets []string) string {
-	return strings.Join(couplets, "\n\n")
+	return strings.Join(couplets, "\\n\\n")
 }
 
 func StringDateForPsql(date string) (string, error) {

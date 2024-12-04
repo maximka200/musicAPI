@@ -40,8 +40,8 @@ func (h *Handler) InitRouter() *gin.Engine {
 		songs.DELETE("/delete", h.Delete)
 		songs.POST("/add", h.Add)
 		songs.PATCH("/edit", h.Edit)
-		songs.GET("/couplets", h.Couplets)
-		songs.GET("filter-by-group-and-date", h.GetSongs)
+		songs.POST("/couplets", h.Couplets)
+		songs.POST("filter-by-group-and-date", h.GetSongs)
 	}
 
 	return engine
@@ -50,7 +50,7 @@ func (h *Handler) Delete(c *gin.Context) {
 	var title models.Title
 	if err := c.ShouldBindJSON(&title); err != nil {
 		h.log.Error(err.Error())
-		c.JSON(400, gin.H{"error": err.Error()})
+		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -72,7 +72,7 @@ func (h *Handler) Add(c *gin.Context) {
 	var title models.Title
 	if err := c.ShouldBindJSON(&title); err != nil {
 		h.log.Error(err.Error())
-		c.JSON(400, gin.H{"error": err.Error()})
+		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 	if err := h.service.AddNew(h.ctx, &title); err != nil {
@@ -97,7 +97,7 @@ func (h *Handler) Edit(c *gin.Context) {
 	song := &models.Song{}
 	if err := c.ShouldBindJSON(song); err != nil {
 		h.log.Error(err.Error())
-		c.JSON(500, gin.H{"error": err})
+		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -123,18 +123,33 @@ func (h *Handler) Edit(c *gin.Context) {
 }
 
 func (h *Handler) Couplets(c *gin.Context) {
-	group := c.Query("group")
-	song := c.Query("song")
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "1"))
+	title := &models.Title{}
+	if err := c.ShouldBindJSON(title); err != nil {
+		h.log.Error(err.Error())
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
 
-	if group == "" || song == "" {
+	if title.Group == "" || title.Song == "" {
 		h.log.Error("Couplets: group and song are required")
 		c.JSON(400, gin.H{})
 		return
 	}
 
-	couplets, err := h.service.GetCouplets(h.ctx, &models.Title{Group: group, Song: song}, page, limit)
+	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if err != nil || page <= 0 {
+		h.log.Error("Couplets: group and song are required")
+		c.JSON(400, gin.H{})
+		return
+	}
+	limit, err := strconv.Atoi(c.DefaultQuery("limit", "1"))
+	if err != nil || limit < 0 {
+		h.log.Error("Couplets: group and song are required")
+		c.JSON(400, gin.H{})
+		return
+	}
+
+	couplets, err := h.service.GetCouplets(h.ctx, title, page, limit)
 	if err != nil {
 		h.log.Error(err.Error())
 		if errors.Is(err, localError.ErrNotFound) {

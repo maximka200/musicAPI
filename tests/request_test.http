@@ -5,7 +5,7 @@ Content-Type: application/json
 
 {
   "group": "T",
-  "song": "T"
+  "song": "TTeessst"
 }
 
 > {%
@@ -15,7 +15,13 @@ client.test("Song added successfully", function() {
 %}
 
 ###
-GET http://localhost:8080/songs/couplets?group=Theaada%20Bdedaays&song="Heyddddddd%20Jhdaaaaue"&page=0&limit=7
+POST http://localhost:8080/songs/couplets?limit=2
+Content-Type: application/json
+
+{
+  "group": "T",
+  "song": "TTeessst"
+}
 
 > {%
 client.test("Couplets retrieved successfully", function() {
@@ -29,10 +35,10 @@ PATCH http://localhost:8080/songs/edit
 Content-Type: application/json
 
 {
-  "title": { "group": "T", "song": "T"},
+  "title": { "group": "T1", "song": "T"},
   "info": {
-    "releaseDate": "11.10.2006",
-    "text": "pisya\\n\\npopa\\n\\npopa\\n\\nj\\n\\nsdas\\n\\nasadasd",
+    "releaseDate": "11.10.0909",
+    "text": "p\\n\\no\\n\\np\\n\\nj\\n\\ns\\n\\na",
     "link": "https://www.youtube.com/watch?v=Xsp3_a-PMTw"
   }
 }
@@ -48,8 +54,8 @@ DELETE http://localhost:8080/songs/delete
 Content-Type: application/json
 
 {
-  "group": "The Beatles",
-  "song": "Hey Jude"
+  "group": "T1",
+  "song": "T"
 }
 
 > {%
@@ -59,15 +65,14 @@ client.test("Song deleted successfully", function() {
 %}
 
 ###
-GET http://localhost:8080/songs/filter-by-group-and-date?page=1&limit=100
+POST http://localhost:8080/songs/filter-by-group-and-date?page=1&limit=2
 Content-Type: application/json
 
 {
-  "group": [],
+  "group": 1,
   "period":
   {
-    "start": "12.10.2000",
-    "end": "12.10.2020"
+    "end": "12.10.2024"
   }
 }
 

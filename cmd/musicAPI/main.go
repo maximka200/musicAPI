@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"log/slog"
 	"musicAPI/internal/config"
 	"musicAPI/internal/repository/psql"
@@ -20,11 +21,6 @@ func main() {
 	cfg := config.MustReadConfig()
 	log := initLogger(cfg.Env)
 	log.Info("starting application", slog.Any("config", cfg))
-
-	if cfg.Env == "prod" {
-		migrator.MigrateUp(cfg, "postgres")
-		log.Info("migrate created")
-	}
 	serv := server.Server{}
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.Timeout)
 	defer cancel()
@@ -33,6 +29,12 @@ func main() {
 	repos := psql.MustNewDB(&cfg)
 	service := services.NewService(client, repos)
 	handler := handlers.NewHandler(log, service, ctx)
+
+	if cfg.Env == "prod" {
+		migrator.MigrateUp(cfg, "postgres")
+		log.Info("migrate created")
+		gin.SetMode(gin.ReleaseMode)
+	}
 
 	go func() {
 		if err := serv.Run(cfg, handler.InitRouter()); err != nil {
