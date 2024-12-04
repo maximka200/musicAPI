@@ -19,7 +19,7 @@ Configs:
 ```
 musiAPI/configs
 ```
-Migration:
+Migrations:
 ```
 musicAPI/migrator/migrations/
 ```
